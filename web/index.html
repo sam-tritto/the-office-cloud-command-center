@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScrantonOS — Dunder Mifflin Cloud Command Center</title>
+  <meta name="description" content="ScrantonOS: An agentic cloud operations command center powered by AI character personas from The Office.">
+  <link rel="stylesheet" href="/static/index.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
+</head>
+<body>
+
+  <div class="app" id="app">
+
+    <!-- ─── Header ─────────────────────────────────────── -->
+    <header class="header">
+      <div class="header__brand">
+        <div class="header__logo">🏢</div>
+        <div>
+          <div class="header__title">ScrantonOS</div>
+          <div class="header__subtitle">Dunder Mifflin Cloud Command Center</div>
+        </div>
+      </div>
+      <div class="header__status">
+        <button id="help-btn" class="help-btn" title="Show Commands">?</button>
+        <div class="status-indicator" id="connection-status">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-text">Connecting...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ─── Command Palette ────────────────────────────── -->
+    <div id="command-palette" class="command-palette">
+      <div class="command-palette__header">Available Commands</div>
+      <div class="command-list">
+        <button class="command-item" data-cmd="Check our cloud logs for crashes">
+          <span class="cmd-icon">🥋</span><div class="cmd-text"><strong>/logs</strong> Check cloud logs (Dwight)</div>
+        </button>
+        <button class="command-item" data-cmd="How much are we spending?">
+          <span class="cmd-icon">📊</span><div class="cmd-text"><strong>/billing</strong> Check FinOps (Oscar)</div>
+        </button>
+        <button class="command-item" data-cmd="Grant viewer access to alice@example.com">
+          <span class="cmd-icon">🧩</span><div class="cmd-text"><strong>/iam</strong> Grant IAM role (Stanley)</div>
+        </button>
+        <button class="command-item" data-cmd="Scan for technical debt">
+          <span class="cmd-icon">📈</span><div class="cmd-text"><strong>/debt</strong> Scan Tech Debt (Jan)</div>
+        </button>
+        <button class="command-item" data-cmd="Delete all data for user 12345">
+          <span class="cmd-icon">🕶️</span><div class="cmd-text"><strong>/purge</strong> Delete user data (Creed)</div>
+        </button>
+        <button class="command-item" data-cmd="Show me the metrics dashboard">
+          <span class="cmd-icon">🌶️</span><div class="cmd-text"><strong>/metrics</strong> View dashboard (Kevin)</div>
+        </button>
+        <button class="command-item" data-cmd="How can we modernize the architecture?">
+          <span class="cmd-icon">🚀</span><div class="cmd-text"><strong>/modernize</strong> Tech suggestions (Ryan)</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- ─── Chat Messages ──────────────────────────────── -->
+    <main class="chat" id="chat-container">
+      <!-- Messages will be injected here by app.js -->
+    </main>
+
+    <!-- ─── Typing Indicator ───────────────────────────── -->
+    <div class="typing-indicator" id="typing-indicator">
+      <div class="typing-indicator__avatar" id="typing-avatar">🤔</div>
+      <div class="typing-indicator__content">
+        <span class="typing-indicator__name" id="typing-name">Someone</span>
+        <div class="typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Input Area ─────────────────────────────────── -->
+    <footer class="input-area">
+      <div class="input-wrapper">
+        <textarea
+          id="chat-input"
+          class="input-field"
+          placeholder="Talk to ScrantonOS... (e.g. 'Check our cloud logs for crashes')"
+          rows="1"
+          autocomplete="off"
+        ></textarea>
+        <button id="send-btn" class="send-btn" title="Send message" disabled>
+          ➤
+        </button>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+timestamp,severity,service,message,container_id,memory_mb
+2026-06-15T08:01:12Z,ERROR,api-gateway,Connection refused to upstream service auth-svc:8080,ctr-a1b2c3d4,256.3
+2026-06-15T08:01:14Z,WARNING,auth-svc,JWT token validation taking >500ms,ctr-e5f6g7h8,312.7
+2026-06-15T08:02:33Z,CRITICAL,payment-processor,OutOfMemoryError: Java heap space exceeded 512MB limit,ctr-i9j0k1l2,518.4
+2026-06-15T08:03:01Z,ERROR,payment-processor,Transaction rollback failed for order #ORD-99281,ctr-i9j0k1l2,521.0
+2026-06-15T08:03:45Z,WARNING,inventory-svc,Cache miss rate exceeded 40% threshold,ctr-m3n4o5p6,198.2
+2026-06-15T08:04:12Z,ERROR,api-gateway,502 Bad Gateway from payment-processor,ctr-a1b2c3d4,261.1
+2026-06-15T08:05:00Z,CRITICAL,payment-processor,OutOfMemoryError: Java heap space exceeded 512MB limit,ctr-i9j0k1l2,530.9
+2026-06-15T08:05:22Z,ERROR,notification-svc,SMTP connection timed out after 30s,ctr-q7r8s9t0,145.6
+2026-06-15T08:06:01Z,WARNING,auth-svc,Rate limit approaching for client IP 10.0.3.42,ctr-e5f6g7h8,318.5
+2026-06-15T08:06:33Z,ERROR,inventory-svc,PostgreSQL connection pool exhausted (max=25),ctr-m3n4o5p6,203.4
+2026-06-15T08:07:15Z,CRITICAL,payment-processor,OutOfMemoryError: Java heap space exceeded 512MB limit,ctr-i9j0k1l2,542.8
+2026-06-15T08:07:45Z,ERROR,api-gateway,Circuit breaker OPEN for payment-processor,ctr-a1b2c3d4,264.0
+2026-06-15T08:08:12Z,WARNING,reporting-svc,BigQuery query exceeded 60s timeout,ctr-u1v2w3x4,287.1
+2026-06-15T08:08:55Z,ERROR,payment-processor,Deadlock detected in transaction manager,ctr-i9j0k1l2,548.2
+2026-06-15T08:09:30Z,ERROR,auth-svc,LDAP bind failed: connection reset by peer,ctr-e5f6g7h8,322.0
+2026-06-15T08:10:00Z,WARNING,inventory-svc,Stale read detected on replica node db-replica-2,ctr-m3n4o5p6,207.8
+2026-06-15T08:10:45Z,CRITICAL,payment-processor,OutOfMemoryError: Java heap space exceeded 512MB limit,ctr-i9j0k1l2,556.1
+2026-06-15T08:11:22Z,ERROR,notification-svc,SendGrid API returned 429 Too Many Requests,ctr-q7r8s9t0,148.3
+2026-06-15T08:12:01Z,ERROR,api-gateway,TLS handshake failed with backend auth-svc,ctr-a1b2c3d4,267.5
+2026-06-15T08:12:33Z,WARNING,reporting-svc,Memory usage trending upward: 287MB → 342MB in 10m,ctr-u1v2w3x4,342.6
+2026-06-15T08:13:15Z,ERROR,payment-processor,Failed to acquire distributed lock for idempotency key,ctr-i9j0k1l2,561.3
+2026-06-15T08:13:55Z,CRITICAL,payment-processor,OutOfMemoryError: Java heap space exceeded 512MB limit,ctr-i9j0k1l2,572.0
+2026-06-15T08:14:30Z,ERROR,inventory-svc,Elasticsearch index write blocked: disk watermark exceeded,ctr-m3n4o5p6,211.2
+2026-06-15T08:15:00Z,WARNING,auth-svc,Session store Redis latency spike: p99=1200ms,ctr-e5f6g7h8,325.8
+2026-06-15T08:15:45Z,ERROR,api-gateway,Request body exceeded 10MB limit on /api/v2/uploads,ctr-a1b2c3d4,270.3
+2026-06-15T08:16:12Z,ERROR,notification-svc,Webhook delivery failed: target returned 500,ctr-q7r8s9t0,151.0
+2026-06-15T08:16:55Z,CRITICAL,payment-processor,OutOfMemoryError: Java heap space exceeded 512MB limit,ctr-i9j0k1l2,584.7
+2026-06-15T08:17:30Z,WARNING,inventory-svc,Product catalog sync lag exceeds 5 minutes,ctr-m3n4o5p6,214.5
+2026-06-15T08:18:00Z,ERROR,payment-processor,Stripe webhook signature verification failed,ctr-i9j0k1l2,588.1
+2026-06-15T08:18:45Z,ERROR,auth-svc,OAuth2 refresh token expired for service account sa-billing@proj.iam,ctr-e5f6g7h8,328.4
+2026-06-15T08:19:22Z,WARNING,reporting-svc,CSV export exceeded 1M row limit; truncated,ctr-u1v2w3x4,356.2
+2026-06-15T08:20:00Z,CRITICAL,payment-processor,OutOfMemoryError: Java heap space exceeded 512MB limit,ctr-i9j0k1l2,598.3
+2026-06-15T08:20:33Z,ERROR,api-gateway,gRPC deadline exceeded for inventory-svc.GetStock,ctr-a1b2c3d4,273.8
+2026-06-15T08:21:15Z,ERROR,inventory-svc,Foreign key constraint violation on orders.product_id,ctr-m3n4o5p6,217.0
+2026-06-15T08:21:55Z,WARNING,notification-svc,Email bounce rate exceeded 5% threshold,ctr-q7r8s9t0,153.7
+2026-06-15T08:22:30Z,ERROR,payment-processor,Currency conversion API returned stale exchange rate,ctr-i9j0k1l2,602.5
+2026-06-15T08:23:00Z,CRITICAL,payment-processor,Container OOMKilled by kubelet — restarting,ctr-i9j0k1l2,612.0
+2026-06-15T08:23:45Z,ERROR,auth-svc,Password hash migration batch job failed at row 12847,ctr-e5f6g7h8,331.2
+2026-06-15T08:24:12Z,WARNING,api-gateway,Deprecation warning: /api/v1/users endpoint sunsets 2026-07-01,ctr-a1b2c3d4,276.1
+2026-06-15T08:24:55Z,ERROR,reporting-svc,Looker embed token generation failed: 403 Forbidden,ctr-u1v2w3x4,361.8
+2026-06-15T08:25:30Z,ERROR,inventory-svc,GCS signed URL generation failed: missing service account key,ctr-m3n4o5p6,219.4
+2026-06-15T08:26:00Z,CRITICAL,payment-processor,OutOfMemoryError: Java heap space exceeded 512MB limit,ctr-i9j0k1l2,621.5
+2026-06-15T08:26:45Z,WARNING,auth-svc,MFA enrollment rate below 60% compliance target,ctr-e5f6g7h8,333.0
+2026-06-15T08:27:12Z,ERROR,notification-svc,Push notification certificate expires in 72 hours,ctr-q7r8s9t0,155.2
+2026-06-15T08:27:55Z,ERROR,api-gateway,WAF rule triggered: SQL injection attempt detected,ctr-a1b2c3d4,278.9
+2026-06-15T08:28:30Z,ERROR,payment-processor,PCI DSS audit log write failed: disk full on /var/log/audit,ctr-i9j0k1l2,628.3
+2026-06-15T08:29:00Z,CRITICAL,payment-processor,OutOfMemoryError: Java heap space exceeded 512MB limit,ctr-i9j0k1l2,637.0
+2026-06-15T08:29:45Z,WARNING,inventory-svc,Dead letter queue size exceeds 500 messages,ctr-m3n4o5p6,222.1
+2026-06-15T08:30:12Z,ERROR,auth-svc,SAML assertion replay attack detected from IP 203.0.113.42,ctr-e5f6g7h8,335.7
+2026-06-15T08:30:55Z,ERROR,reporting-svc,Scheduled report cron job missed execution window,ctr-u1v2w3x4,367.4
+2026-06-15T08:31:30Z,CRITICAL,payment-processor,OutOfMemoryError: Java heap space exceeded 512MB limit,ctr-i9j0k1l2,648.9

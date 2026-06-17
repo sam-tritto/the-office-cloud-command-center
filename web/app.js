@@ -1,0 +1,477 @@
+/**
+ * ScrantonOS — Client-Side Chat Application
+ * ==========================================
+ * WebSocket-based real-time chat with character avatars,
+ * HITL approval handling, and markdown rendering.
+ */
+
+(() => {
+  'use strict';
+
+  // ═══════════════════════════════════════════════════════════════
+  // Character Configuration
+  // ═══════════════════════════════════════════════════════════════
+
+  const CHARACTERS = {
+    michael:    { name: 'Michael Scott',     emoji: '👔', color: '#4A90D9', title: 'Regional Manager' },
+    dwight:     { name: 'Dwight Schrute',    emoji: '🥋', color: '#C0392B', title: 'Asst. Regional Manager' },
+    oscar:      { name: 'Oscar Martinez',    emoji: '📊', color: '#27AE60', title: 'FinOps Analyst' },
+    stanley:    { name: 'Stanley Hudson',    emoji: '🧩', color: '#7F8C8D', title: 'IAM Compliance' },
+    toby:       { name: 'Toby Flenderson',   emoji: '📋', color: '#95A5A6', title: 'HITL Approval Gate' },
+    angela:     { name: 'Angela Martin',     emoji: '🐱', color: '#E91E63', title: 'Firebase Monitor' },
+    jim:        { name: 'Jim Halpert',       emoji: '😏', color: '#3498DB', title: 'UI/UX Reviewer' },
+    meredith:   { name: 'Meredith Palmer',   emoji: '🔥', color: '#E74C3C', title: 'Chaos Engineer' },
+    gabe:       { name: 'Gabe Lewis',        emoji: '📚', color: '#8E44AD', title: 'Documentation RAG' },
+    jan:        { name: 'Jan Levinson',      emoji: '📈', color: '#D4AC0D', title: 'Tech Debt Auditor' },
+    bob_vance:  { name: 'Bob Vance',         emoji: '❄️', color: '#1ABC9C', title: 'Legacy Migration' },
+    pam:        { name: 'Pam Beesly',        emoji: '🎨', color: '#F39C12', title: 'Artifact Generator' },
+    erin:       { name: 'Erin Hannon',       emoji: '🎀', color: '#00BCD4', title: 'Git Pipeline' },
+    kevin:      { name: 'Kevin Malone',      emoji: '🌶️', color: '#E67E22', title: 'Metrics Dashboard' },
+    ryan:       { name: 'Ryan Howard',       emoji: '📈', color: '#BDC3C7', title: 'Tech Recommender' },
+    user:       { name: 'You',               emoji: '👤', color: '#7C3AED', title: '' },
+    system:     { name: 'System',            emoji: '⚙️', color: '#6366f1', title: '' },
+  };
+
+  // ═══════════════════════════════════════════════════════════════
+  // DOM References
+  // ═══════════════════════════════════════════════════════════════
+
+  const chatContainer = document.getElementById('chat-container');
+  const chatInput = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('send-btn');
+  const statusDot = document.getElementById('status-dot');
+  const statusText = document.getElementById('status-text');
+  const typingIndicator = document.getElementById('typing-indicator');
+  const typingAvatar = document.getElementById('typing-avatar');
+  const typingName = document.getElementById('typing-name');
+
+  // ═══════════════════════════════════════════════════════════════
+  // WebSocket Connection
+  // ═══════════════════════════════════════════════════════════════
+
+  let ws = null;
+  let reconnectAttempts = 0;
+  const MAX_RECONNECT = 10;
+  const RECONNECT_DELAY = 2000;
+
+  function connect() {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${location.host}/ws`;
+
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      reconnectAttempts = 0;
+      setConnectionStatus(true);
+      sendBtn.disabled = false;
+      console.log('[ScrantonOS] Connected to server');
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        handleMessage(data);
+      } catch (e) {
+        console.error('[ScrantonOS] Failed to parse message:', e);
+      }
+    };
+
+    ws.onclose = () => {
+      setConnectionStatus(false);
+      sendBtn.disabled = true;
+      console.log('[ScrantonOS] Disconnected');
+
+      if (reconnectAttempts < MAX_RECONNECT) {
+        reconnectAttempts++;
+        const delay = RECONNECT_DELAY * Math.min(reconnectAttempts, 5);
+        console.log(`[ScrantonOS] Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
+        setTimeout(connect, delay);
+      }
+    };
+
+    ws.onerror = (err) => {
+      console.error('[ScrantonOS] WebSocket error:', err);
+    };
+  }
+
+  function setConnectionStatus(connected) {
+    statusDot.className = connected ? 'status-dot' : 'status-dot status-dot--disconnected';
+    statusText.textContent = connected ? 'Connected' : 'Disconnected';
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Message Handling
+  // ═══════════════════════════════════════════════════════════════
+
+  function handleMessage(data) {
+    if (data.type === 'session_init') {
+      window.sessionId = data.session_id;
+      return;
+    }
+
+    hideTyping();
+
+    const {
+      agent_name,
+      agent_id,
+      message,
+      message_type,
+      flavor_quote,
+      timestamp,
+      metadata,
+    } = data;
+
+    renderMessage({
+      agentId: agent_id || 'system',
+      agentName: agent_name || 'Unknown',
+      message: message || '',
+      messageType: message_type || 'agent_response',
+      flavorQuote: flavor_quote,
+      timestamp: timestamp,
+      metadata: metadata,
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Message Rendering
+  // ═══════════════════════════════════════════════════════════════
+
+  function renderMessage({ agentId, agentName, message, messageType, flavorQuote, timestamp, metadata }) {
+    const char = CHARACTERS[agentId] || CHARACTERS.system;
+    const isUser = messageType === 'user_input';
+    const isError = messageType === 'error';
+    const isSystem = messageType === 'system';
+    const isHITL = messageType === 'hitl_pause';
+
+    const el = document.createElement('div');
+    el.className = `message ${isUser ? 'message--user' : ''} ${isError ? 'message--error' : ''} ${isSystem ? 'message--system' : ''}`;
+
+    // Set accent color as CSS variable
+    el.style.setProperty('--accent-color', char.color);
+
+    // Avatar
+    const avatarEl = document.createElement('div');
+    avatarEl.className = 'message__avatar';
+    avatarEl.style.borderColor = char.color + '40';
+
+    // Check for avatar image
+    const avatarImg = `/static/avatars/${agentId}.png`;
+    avatarEl.innerHTML = `<span>${char.emoji}</span>`;
+    // Try to load avatar image
+    if (agentId !== 'user' && agentId !== 'system') {
+      const img = new Image();
+      img.onload = () => {
+        avatarEl.innerHTML = '';
+        avatarEl.appendChild(img);
+      };
+      img.src = avatarImg;
+      img.alt = char.name;
+    }
+
+    // Bubble
+    const bubbleEl = document.createElement('div');
+    bubbleEl.className = 'message__bubble';
+
+    // Header
+    const headerEl = document.createElement('div');
+    headerEl.className = 'message__header';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'message__name';
+    nameEl.style.color = char.color;
+    nameEl.textContent = char.name;
+
+    headerEl.appendChild(nameEl);
+
+    if (char.title && !isUser) {
+      const titleEl = document.createElement('span');
+      titleEl.className = 'message__title';
+      titleEl.textContent = char.title;
+      headerEl.appendChild(titleEl);
+    }
+
+    if (timestamp) {
+      const timeEl = document.createElement('span');
+      timeEl.className = 'message__time';
+      timeEl.textContent = formatTime(timestamp);
+      headerEl.appendChild(timeEl);
+    }
+
+    // Message text
+    const textEl = document.createElement('div');
+    textEl.className = 'message__text';
+    textEl.innerHTML = renderMarkdown(message);
+
+    bubbleEl.appendChild(headerEl);
+    bubbleEl.appendChild(textEl);
+
+    // HITL card
+    if (isHITL && metadata) {
+      const hitlCard = createHITLCard(metadata);
+      bubbleEl.appendChild(hitlCard);
+    }
+
+    // Flavor quote
+    if (flavorQuote && !isUser) {
+      const quoteEl = document.createElement('div');
+      quoteEl.className = 'message__quote';
+      quoteEl.textContent = flavorQuote;
+      bubbleEl.appendChild(quoteEl);
+    }
+
+    el.appendChild(avatarEl);
+    el.appendChild(bubbleEl);
+
+    chatContainer.appendChild(el);
+    scrollToBottom();
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // HITL Approval Card
+  // ═══════════════════════════════════════════════════════════════
+
+  function createHITLCard(metadata) {
+    const card = document.createElement('div');
+    card.className = 'hitl-card';
+    card.id = `hitl-${metadata.request_id}`;
+
+    const riskColors = {
+      low: '#10b981',
+      medium: '#f59e0b',
+      high: '#ef4444',
+      critical: '#dc2626',
+    };
+    const riskColor = riskColors[metadata.risk_level] || riskColors.medium;
+
+    card.innerHTML = `
+      <div class="hitl-card__header">
+        <span>⏸️</span>
+        <span>Workflow Paused — Human Approval Required</span>
+      </div>
+      <dl class="hitl-card__details">
+        <dt>Action</dt>
+        <dd>${metadata.action_type || 'Unknown'}</dd>
+        ${metadata.action_details?.target_user ? `<dt>User</dt><dd>${metadata.action_details.target_user}</dd>` : ''}
+        ${metadata.action_details?.target_role ? `<dt>Role</dt><dd>${metadata.action_details.target_role}</dd>` : ''}
+        ${metadata.action_details?.target_user_id ? `<dt>User ID</dt><dd>${metadata.action_details.target_user_id}</dd>` : ''}
+        <dt>Risk Level</dt>
+        <dd style="color: ${riskColor}; font-weight: 600;">${(metadata.risk_level || 'medium').toUpperCase()}</dd>
+        <dt>Request ID</dt>
+        <dd style="font-size: 0.75em; opacity: 0.7;">${metadata.request_id}</dd>
+      </dl>
+      <div class="hitl-card__actions">
+        <button class="hitl-btn hitl-btn--approve" onclick="window.scrantonHITL('${metadata.request_id}', true)" id="hitl-approve-${metadata.request_id}">
+          ✅ Approve
+        </button>
+        <button class="hitl-btn hitl-btn--reject" onclick="window.scrantonHITL('${metadata.request_id}', false)" id="hitl-reject-${metadata.request_id}">
+          ❌ Reject
+        </button>
+      </div>
+    `;
+
+    return card;
+  }
+
+  // Global HITL handler
+  window.scrantonHITL = (requestId, approved) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      alert('Not connected to server');
+      return;
+    }
+
+    // Disable buttons
+    const approveBtn = document.getElementById(`hitl-approve-${requestId}`);
+    const rejectBtn = document.getElementById(`hitl-reject-${requestId}`);
+    if (approveBtn) approveBtn.disabled = true;
+    if (rejectBtn) rejectBtn.disabled = true;
+
+    // Send HITL response
+    ws.send(JSON.stringify({
+      type: 'hitl_response',
+      request_id: requestId,
+      approved: approved,
+      note: approved ? '' : 'Rejected by operator via UI',
+    }));
+
+    // Update card appearance
+    const card = document.getElementById(`hitl-${requestId}`);
+    if (card) {
+      card.style.animation = 'none';
+      card.style.borderColor = approved ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)';
+      card.style.background = approved ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)';
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════════
+  // Simple Markdown Renderer
+  // ═══════════════════════════════════════════════════════════════
+
+  function renderMarkdown(text) {
+    if (!text) return '';
+
+    let html = escapeHtml(text);
+
+    // Code blocks (must come before inline code)
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+    html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+
+    // Inline code
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Bold
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+    // Italic
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+    // Headers
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+    // Unordered lists
+    html = html.replace(/^[-•] (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+    // Ordered lists
+    html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+
+    // Horizontal rules
+    html = html.replace(/^---$/gm, '<hr>');
+
+    // Line breaks → paragraphs
+    html = html.replace(/\n\n/g, '</p><p>');
+    html = html.replace(/\n/g, '<br>');
+    html = `<p>${html}</p>`;
+
+    // Clean up empty paragraphs
+    html = html.replace(/<p><\/p>/g, '');
+    html = html.replace(/<p>(<h[1-3]>)/g, '$1');
+    html = html.replace(/(<\/h[1-3]>)<\/p>/g, '$1');
+    html = html.replace(/<p>(<pre>)/g, '$1');
+    html = html.replace(/(<\/pre>)<\/p>/g, '$1');
+    html = html.replace(/<p>(<ul>)/g, '$1');
+    html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+    html = html.replace(/<p>(<hr>)<\/p>/g, '$1');
+
+    return html;
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Utilities
+  // ═══════════════════════════════════════════════════════════════
+
+  function formatTime(timestamp) {
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return '';
+    }
+  }
+
+  function scrollToBottom() {
+    requestAnimationFrame(() => {
+      chatContainer.scrollTo({
+        top: chatContainer.scrollHeight,
+        behavior: 'smooth',
+      });
+    });
+  }
+
+  function showTyping(agentId) {
+    const char = CHARACTERS[agentId] || CHARACTERS.system;
+    typingAvatar.textContent = char.emoji;
+    typingName.textContent = `${char.name} is thinking...`;
+    typingIndicator.classList.add('active');
+    scrollToBottom();
+  }
+
+  function hideTyping() {
+    typingIndicator.classList.remove('active');
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Input Handling
+  // ═══════════════════════════════════════════════════════════════
+
+  function sendMessage() {
+    const text = chatInput.value.trim();
+    if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+    ws.send(JSON.stringify({
+      type: 'chat',
+      message: text,
+    }));
+
+    chatInput.value = '';
+    chatInput.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    // Show typing indicator for Michael (he receives first)
+    showTyping('michael');
+  }
+
+  // Auto-resize textarea
+  chatInput.addEventListener('input', () => {
+    chatInput.style.height = 'auto';
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 160) + 'px';
+    sendBtn.disabled = !chatInput.value.trim();
+  });
+
+  // Enter to send (Shift+Enter for newline)
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  sendBtn.addEventListener('click', sendMessage);
+
+  // ═══════════════════════════════════════════════════════════════
+  // Command Palette
+  // ═══════════════════════════════════════════════════════════════
+
+  const helpBtn = document.getElementById('help-btn');
+  const commandPalette = document.getElementById('command-palette');
+  
+  if (helpBtn && commandPalette) {
+    helpBtn.addEventListener('click', () => {
+      commandPalette.classList.toggle('active');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!helpBtn.contains(e.target) && !commandPalette.contains(e.target)) {
+        commandPalette.classList.remove('active');
+      }
+    });
+
+    // Handle command clicks
+    commandPalette.addEventListener('click', (e) => {
+      const cmdBtn = e.target.closest('.command-item');
+      if (cmdBtn) {
+        chatInput.value = cmdBtn.dataset.cmd;
+        chatInput.focus();
+        commandPalette.classList.remove('active');
+      }
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Initialize
+  // ═══════════════════════════════════════════════════════════════
+
+  connect();
+
+})();

@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  scranton-os:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=DEV
+      # Inject local secrets if needed for dev inside container
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - ./data:/app/data
+      - ./web:/app/web
+    # Optional: use command to run with reload for dev
+    # command: uvicorn server:app --host 0.0.0.0 --port 8000 --reload
