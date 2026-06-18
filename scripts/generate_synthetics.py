@@ -137,6 +137,13 @@ def generate_jira_tickets(count: int = 500):
         json.dump(tickets, f, indent=2)
 
 
+def generate_rag_index():
+    import subprocess
+    import sys
+    print("Building RAG vector index...")
+    script_path = os.path.join(os.path.dirname(__file__), "build_rag_index.py")
+    subprocess.run([sys.executable, script_path])
+
 if __name__ == "__main__":
     print("=" * 50)
     print("Starting Synthetic Data Generation")
@@ -144,6 +151,7 @@ if __name__ == "__main__":
     generate_logs()
     generate_billing()
     generate_jira_tickets()
+    generate_rag_index()
     print("=" * 50)
     print(f"Synthetics saved to {DATA_DIR}")
     print("=" * 50)

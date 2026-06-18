@@ -500,6 +500,8 @@ class ScrantonWorkflow:
             response_text = await self._run_firebase(agent_id, user_input, emit, session_id)
         elif intent == CommandIntent.METRICS:
             response_text = await self._run_metrics(agent_id, user_input, emit, session_id)
+        elif intent == CommandIntent.DOCS:
+            response_text = await self._run_docs(agent_id, user_input, emit, session_id)
         else:
             # Generic specialist — just pass the prompt through
             prompt = f"User request: {user_input}\n\nProvide your expert analysis."
@@ -509,6 +511,33 @@ class ScrantonWorkflow:
             await emit(make_agent_message(agent_id, response_text, session_id=session_id))
             
         return response_text
+
+    async def _run_docs(self, agent_id: str, user_input: str, emit: Callable, session_id: str) -> str:
+        """Gabe searches documentation."""
+        from tools.docs_rag import search_docs
+        try:
+            results = search_docs(user_input, top_k=3)
+            
+            context_blocks = []
+            for r in results:
+                context_blocks.append(f"Source: {r['file_name']} (Score: {r['score']:.2f})\\n{r['text']}")
+            
+            context_str = "\\n\\n---\\n\\n".join(context_blocks)
+            
+            prompt = (
+                f"User request: {user_input}\\n\\n"
+                f"I found the following documentation excerpts that might be relevant:\\n\\n"
+                f"{context_str}\\n\\n"
+                f"Please use these excerpts to answer the user's request according to your personality."
+            )
+            response = await run_agent_llm(agent_id, prompt, session_id)
+            await emit(make_agent_message(agent_id, response, session_id=session_id))
+            return response
+
+        except Exception as e:
+            error_resp = f"I've encountered an issue searching the archives. It appears the system is malfunctioning. Error: {e}"
+            await emit(make_agent_message(agent_id, error_resp, message_type="error", session_id=session_id))
+            return error_resp
 
     async def _run_sre(self, agent_id: str, user_input: str, emit: Callable, session_id: str) -> str:
         """Dwight analyzes logs."""
