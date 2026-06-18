@@ -297,3 +297,75 @@ def scan_tech_debt() -> dict[str, Any]:
         }
     except Exception as e:
         return {"error": f"Failed to load tech debt data: {e}"}
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Erin's Tool — Git & Pipeline Monitor (DEV Mode)
+# ═══════════════════════════════════════════════════════════════════════
+
+def fetch_git_pipeline_status() -> dict[str, Any]:
+    """
+    Simulate checking the GitHub Actions pipeline status, branch status, and PRs.
+    """
+    return {
+        "repository": get_config().GITHUB_REPO or "owner/repo-mock",
+        "branch": "main",
+        "pipeline_status": "success",
+        "build_number": 402,
+        "completed_at": "2026-06-18T07:12:45Z",
+        "tests_passed": 128,
+        "tests_failed": 0,
+        "active_pull_requests": [
+            {
+                "id": 89,
+                "title": "Clean up unused storage buckets",
+                "author": "Ryan Howard",
+                "status": "changes_requested",
+                "labels": ["🔥 critical", "refactor"]
+            },
+            {
+                "id": 92,
+                "title": "Enable multi-region log routing",
+                "author": "Jim Halpert",
+                "status": "approved",
+                "labels": ["✨ feature"]
+            }
+        ],
+        "message": "Staging deployment was successful! Nothing exploded. 🎉"
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Angela's Tool — Firebase Crashlytics Monitor (DEV Mode)
+# ═══════════════════════════════════════════════════════════════════════
+
+def fetch_firebase_crashlytics() -> dict[str, Any]:
+    """
+    Simulate fetching recent crash alerts and errors from Firebase Crashlytics.
+    """
+    return {
+        "project_id": get_config().FIREBASE_PROJECT_ID or "firebase-project-mock",
+        "app_status": "unstable",
+        "crash_free_users_pct": 98.4,
+        "recent_issues": [
+            {
+                "issue_id": "CRASH-7718",
+                "title": "NullPointerException: Attempt to invoke virtual method on a null object reference",
+                "class": "com.dundermifflin.ScrantonApp.LoginActivity",
+                "impacted_users": 142,
+                "occurrences": 890,
+                "status": "unresolved",
+                "severity": "fatal"
+            },
+            {
+                "issue_id": "ANR-12",
+                "title": "Application Not Responding: Input dispatching timed out",
+                "class": "com.dundermifflin.ScrantonApp.CatalogFragment",
+                "impacted_users": 34,
+                "occurrences": 52,
+                "status": "unresolved",
+                "severity": "non-fatal"
+            }
+        ]
+    }
+

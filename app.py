@@ -39,6 +39,8 @@ from tools import (
     query_billing_data,
     scan_tech_debt,
     verify_approval_token,
+    fetch_git_pipeline_status,
+    fetch_firebase_crashlytics,
 )
 from database import save_message, get_conversation_history, log_audit_event, get_total_tokens_used
 
@@ -480,6 +482,10 @@ class ScrantonWorkflow:
             response_text = await self._run_tech_debt(agent_id, user_input, emit, session_id)
         elif intent == CommandIntent.PURGE:
             response_text = await self._run_purge(agent_id, user_input, emit, session_id)
+        elif intent == CommandIntent.GIT_OPS:
+            response_text = await self._run_git_ops(agent_id, user_input, emit, session_id)
+        elif intent == CommandIntent.FIREBASE:
+            response_text = await self._run_firebase(agent_id, user_input, emit, session_id)
         else:
             # Generic specialist — just pass the prompt through
             prompt = f"User request: {user_input}\n\nProvide your expert analysis."
@@ -763,6 +769,42 @@ class ScrantonWorkflow:
             session_id=session_id,
         ))
         return "Requested data purge."
+
+    async def _run_git_ops(self, agent_id: str, user_input: str, emit: Callable, session_id: str) -> str:
+        """Erin manages and monitors Git / CI/CD operations."""
+        try:
+            status = fetch_git_pipeline_status()
+            prompt = (
+                f"User request: {user_input}\n\n"
+                f"Here is the Git repository and CI/CD pipeline status:\n"
+                f"```json\n{json.dumps(status, indent=2)}\n```\n\n"
+                f"Explain the pipeline status, branch status, and active PRs."
+            )
+            response = await run_agent_llm(agent_id, prompt, session_id)
+            await emit(make_agent_message(agent_id, response, session_id=session_id))
+            return response
+        except Exception as e:
+            error_resp = f"Oh my gosh, I tried to check the Git pipeline but something went wrong! Here is the error: {e}"
+            await emit(make_agent_message(agent_id, error_resp, message_type="error", session_id=session_id))
+            return error_resp
+
+    async def _run_firebase(self, agent_id: str, user_input: str, emit: Callable, session_id: str) -> str:
+        """Angela audits Firebase Crashlytics reports."""
+        try:
+            crashlytics_data = fetch_firebase_crashlytics()
+            prompt = (
+                f"User request: {user_input}\n\n"
+                f"Here is the Firebase Crashlytics dataset:\n"
+                f"```json\n{json.dumps(crashlytics_data, indent=2)}\n```\n\n"
+                f"Audit this crash data and report the issues that must be addressed immediately."
+            )
+            response = await run_agent_llm(agent_id, prompt, session_id)
+            await emit(make_agent_message(agent_id, response, session_id=session_id))
+            return response
+        except Exception as e:
+            error_resp = f"This is unacceptable. I cannot access the Firebase Crashlytics dashboard. Error: {e}"
+            await emit(make_agent_message(agent_id, error_resp, message_type="error", session_id=session_id))
+            return error_resp
 
     # ── Utility Extractors ───────────────────────────────────────────
 

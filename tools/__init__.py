@@ -27,6 +27,8 @@ if _cfg.is_dev:
         apply_iam_grant,
         hard_purge_user_data,
         scan_tech_debt,
+        fetch_git_pipeline_status,
+        fetch_firebase_crashlytics,
     )
 else:
     from tools.cloud_tools import (
@@ -40,6 +42,8 @@ else:
         apply_iam_grant,
         hard_purge_user_data,
         scan_tech_debt,
+        fetch_git_pipeline_status,
+        fetch_firebase_crashlytics,
     )
 
 __all__ = [
@@ -53,4 +57,7 @@ __all__ = [
     "apply_iam_grant",
     "hard_purge_user_data",
     "scan_tech_debt",
+    "fetch_git_pipeline_status",
+    "fetch_firebase_crashlytics",
 ]
+

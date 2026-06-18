@@ -46,6 +46,16 @@ class ScrantonConfig(BaseSettings):
     HOST: str = "127.0.0.1"
     PORT: int = 8000
 
+    # ── Sub-Agents Custom Configurations ─────────────────────────────
+    GITHUB_REPO: str = ""
+    GITHUB_TOKEN: str = ""
+    LOCAL_REPO_PATH: str = ""
+    FIREBASE_PROJECT_ID: str = ""
+    FIREBASE_CREDENTIALS_PATH: str = ""
+    GCP_LOG_FILTER: str = ""
+    GCP_BILLING_DATASET: str = ""
+
+
     # ── IAM Whitelist ────────────────────────────────────────────────
     # Hardcoded safe roles that Stanley will allow without escalation.
     IAM_ROLE_WHITELIST: list[str] = [

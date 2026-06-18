@@ -130,3 +130,57 @@ def scan_tech_debt() -> dict[str, Any]:
         "PROD tech debt scanner requires access to the source repository. "
         "Configure REPO_PATH or GITHUB_TOKEN."
     )
+
+
+def fetch_git_pipeline_status() -> dict[str, Any]:
+    """
+    Query GitHub API for build/pipeline status, run outcomes, and active PRs.
+    """
+    from config import get_config
+    import urllib.request
+    import json
+
+    cfg = get_config()
+    if not cfg.GITHUB_REPO or not cfg.GITHUB_TOKEN:
+        raise ValueError("PROD mode requires GITHUB_REPO and GITHUB_TOKEN environment variables.")
+
+    url = f"https://api.github.com/repos/{cfg.GITHUB_REPO}/actions/runs"
+    req = urllib.request.Request(url)
+    req.add_header("Authorization", f"token {cfg.GITHUB_TOKEN}")
+    req.add_header("Accept", "application/vnd.github.v3+json")
+    req.add_header("User-Agent", "ScrantonOS-App")
+
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode())
+            runs = data.get("workflow_runs", [])
+            latest_status = "unknown"
+            if runs:
+                latest_status = runs[0].get("conclusion") or runs[0].get("status") or "unknown"
+            return {
+                "repository": cfg.GITHUB_REPO,
+                "pipeline_status": latest_status,
+                "runs_count": len(runs),
+                "latest_run": runs[0] if runs else None
+            }
+    except Exception as e:
+        raise RuntimeError(f"Failed to fetch Git pipeline status from GitHub: {e}")
+
+
+def fetch_firebase_crashlytics() -> dict[str, Any]:
+    """
+    Query Firebase Crashlytics API for crash/ANR statistics.
+    """
+    from config import get_config
+    cfg = get_config()
+    if not cfg.FIREBASE_PROJECT_ID:
+        raise ValueError("PROD mode requires FIREBASE_PROJECT_ID configuration.")
+
+    # A production implementation would fetch from:
+    # https://firebasecrashlytics.googleapis.com/v1/projects/{project_id}/apps/{app_id}/issues
+    # or use google-api-python-client with appropriate credentials.
+    raise NotImplementedError(
+        "PROD Firebase Crashlytics tool requires OAuth2 credentials. "
+        "Configure FIREBASE_CREDENTIALS_PATH and ensure the service account has permission."
+    )
+
