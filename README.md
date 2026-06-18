@@ -11,6 +11,7 @@ ScrantonOS is a persistent, multi-agent orchestration engine and web interface b
   - **Angela (Firebase)**: A bar chart visualizing Firebase crash rates and device breakdowns.
   - **Kevin (Metrics)**: A custom metric grid calculating "Keleven-adjusted" calculations.
 - **Jim Halpert's Multimodal UI/UX Reviews 📎**: Upload frontend screenshots via the paperclip icon in the chat. The app converts the files to Base64, transmits them over WebSockets, and routes them as native image parameters to the Google Antigravity SDK using Gemini 1.5, allowing Jim to review layouts, alignments, and joke about the design quality.
+- **Gabe Lewis's Vanilla RAG Documentation Search 📚**: A lightweight, offline-capable Retrieval-Augmented Generation (RAG) system built without external vector databases. It uses the Google GenAI SDK for local embeddings and gracefully falls back to a custom deterministic keyword-overlap algorithm when offline or missing API keys.
 - **Async Webhook Alerts & Live Badges ⚡**: A specialized HTTP endpoint (`POST /api/webhooks/alerts`) allows third-party tools (GitHub Actions, Firebase, Prometheus) to push live status alerts. Active WebSocket clients receive real-time, toast-style notifications marked with high-visibility "⚡ LIVE" badges.
 - **Persistent State & Audit Logging**: 
   - `DEV` Mode: Uses local CSV files for conversation memory, session tracking, and audit logging.
