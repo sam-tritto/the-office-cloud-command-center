@@ -890,3 +890,54 @@ body::before {
   color: var(--brand-primary);
   margin-right: 4px;
 }
+
+/* ── Webhook Alert Messages ───────────────────────────────────── */
+
+/* The bubble gets a vivid animated border to signal an async event */
+.message--webhook .message__bubble {
+  border-color: transparent;
+  background: linear-gradient(var(--bg-elevated), var(--bg-elevated)) padding-box,
+              linear-gradient(135deg, var(--accent-color, var(--brand-primary)), transparent 70%) border-box;
+  animation: webhookGlow 2.5s ease-in-out infinite;
+  box-shadow: 0 0 0 0 transparent;
+}
+
+@keyframes webhookGlow {
+  0%  { box-shadow: 0 0 0px rgba(var(--accent-color, 37, 99, 235), 0); }
+  50% { box-shadow: 0 0 18px color-mix(in srgb, var(--accent-color, var(--brand-primary)) 40%, transparent); }
+  100%{ box-shadow: 0 0 0px rgba(var(--accent-color, 37, 99, 235), 0); }
+}
+
+/* The ⚡ LIVE badge */
+.message__live-badge {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  animation: liveBadgePulse 1.8s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes liveBadgePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.75; transform: scale(0.95); }
+}
+
+/* Source chip (e.g. 🐙 GITHUB) */
+.message__source-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+

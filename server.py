@@ -13,12 +13,13 @@ import logging
 import os
 from typing import Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from typing import Literal, Optional
 
-from app import ScrantonWorkflow
+from app import ScrantonWorkflow, run_agent_llm, make_agent_message
 from config import get_config
 from schemas.models import AgentMessage
 from database import create_session
@@ -42,6 +43,16 @@ workflow = ScrantonWorkflow()
 # Track active WebSocket connections by session_id
 active_connections: dict[str, list[WebSocket]] = {}
 
+# ── Webhook Alert → Agent Routing ──────────────────────────────────────
+# Maps the alert source to the agent who should react to it.
+WEBHOOK_AGENT_MAP: dict[str, str] = {
+    "github": "erin",
+    "logs": "dwight",
+    "billing": "oscar",
+    "firebase": "angela",
+    "iam": "stanley",
+}
+
 
 async def broadcast_message(msg: AgentMessage) -> None:
     """Broadcast an agent message to connected clients for its session."""
@@ -62,6 +73,25 @@ async def broadcast_message(msg: AgentMessage) -> None:
     
     if not active_connections[session_id]:
         del active_connections[session_id]
+
+
+async def broadcast_to_all_sessions(msg: AgentMessage) -> None:
+    """Push an agent message to every active WebSocket session (for async alerts)."""
+    data = msg.to_ws_json()
+    dead_sessions = []
+    for session_id, connections in active_connections.items():
+        disconnected = []
+        for ws in connections:
+            try:
+                await ws.send_json(data)
+            except Exception:
+                disconnected.append(ws)
+        for ws in disconnected:
+            connections.remove(ws)
+        if not connections:
+            dead_sessions.append(session_id)
+    for s in dead_sessions:
+        del active_connections[s]
 
 
 # Register the broadcast callback
@@ -175,6 +205,78 @@ async def websocket_endpoint(ws: WebSocket):
         if session_id in active_connections and not active_connections[session_id]:
             del active_connections[session_id]
         logger.info(f"Client disconnected. Session: {session_id}")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Webhook Alert Ingestion Endpoint
+# ═══════════════════════════════════════════════════════════════════════
+
+class AlertPayload(BaseModel):
+    """Schema for inbound webhook alerts from external systems."""
+    source: Literal["github", "logs", "billing", "firebase", "iam"] = "github"
+    event: str  # e.g. 'failure', 'success', 'anomaly', 'critical'
+    repository: Optional[str] = None
+    message: Optional[str] = None
+    severity: Optional[str] = None
+
+
+@app.post("/api/webhooks/alerts")
+async def ingest_alert(payload: AlertPayload):
+    """
+    Receive an external alert event and dispatch an async in-character
+    notification to all connected WebSocket clients.
+
+    Example curl:
+        curl -X POST http://localhost:8000/api/webhooks/alerts \\
+          -H 'Content-Type: application/json' \\
+          -d '{"source": "github", "event": "failure", "repository": "scranton-os", "message": "Tests failed on main"}'
+    """
+    agent_id = WEBHOOK_AGENT_MAP.get(payload.source, "michael")
+
+    # Build a rich context prompt for the agent
+    context_parts = [f"An external alert has arrived from the {payload.source.upper()} system."]
+    context_parts.append(f"Event type: {payload.event}")
+    if payload.repository:
+        context_parts.append(f"Repository: {payload.repository}")
+    if payload.message:
+        context_parts.append(f"Details: {payload.message}")
+    if payload.severity:
+        context_parts.append(f"Severity: {payload.severity}")
+    context_parts.append(
+        "React to this alert in character. Be concise (2-4 sentences). "
+        "Do NOT ask clarifying questions — just report and react."
+    )
+    prompt = "\n".join(context_parts)
+
+    logger.info(f"Webhook alert received: source={payload.source} event={payload.event}")
+
+    if not active_connections:
+        logger.info("No active sessions to notify.")
+        return {"status": "no_active_sessions", "agent": agent_id}
+
+    # Generate in-character response (uses mock response if no API key)
+    try:
+        response_text = await run_agent_llm(agent_id, prompt, session_id="webhook")
+    except Exception as e:
+        logger.error(f"Agent LLM failed for webhook alert: {e}")
+        response_text = f"Alert received from {payload.source}: {payload.message or payload.event}"
+
+    # Build the agent message with webhook_alert type
+    msg = make_agent_message(
+        agent_id,
+        response_text,
+        message_type="webhook_alert",
+        metadata={
+            "source": payload.source,
+            "event": payload.event,
+            "repository": payload.repository,
+            "severity": payload.severity,
+        },
+        session_id="webhook",
+    )
+
+    await broadcast_to_all_sessions(msg)
+    return {"status": "ok", "agent": agent_id, "sessions_notified": len(active_connections)}
 
 
 # ═══════════════════════════════════════════════════════════════════════

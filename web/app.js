@@ -121,6 +121,24 @@
       metadata,
     } = data;
 
+    // For async webhook alerts, briefly show a typing animation before rendering
+    if (message_type === 'webhook_alert') {
+      showTyping(agent_id || 'system');
+      setTimeout(() => {
+        hideTyping();
+        renderMessage({
+          agentId: agent_id || 'system',
+          agentName: agent_name || 'Unknown',
+          message: message || '',
+          messageType: message_type || 'agent_response',
+          flavorQuote: flavor_quote,
+          timestamp: timestamp,
+          metadata: metadata,
+        });
+      }, 900);
+      return;
+    }
+
     renderMessage({
       agentId: agent_id || 'system',
       agentName: agent_name || 'Unknown',
@@ -142,11 +160,16 @@
     const isError = messageType === 'error';
     const isSystem = messageType === 'system';
     const isHITL = messageType === 'hitl_pause';
+    const isWebhook = messageType === 'webhook_alert';
 
     const el = document.createElement('div');
-    el.className = `message ${isUser ? 'message--user' : ''} ${isError ? 'message--error' : ''} ${isSystem ? 'message--system' : ''}`;
-
-    // Set accent color as CSS variable
+    el.className = [
+      'message',
+      isUser     ? 'message--user'    : '',
+      isError    ? 'message--error'   : '',
+      isSystem   ? 'message--system'  : '',
+      isWebhook  ? 'message--webhook' : '',
+    ].filter(Boolean).join(' ');
     el.style.setProperty('--accent-color', char.color);
 
     // Avatar
@@ -188,6 +211,22 @@
       titleEl.className = 'message__title';
       titleEl.textContent = char.title;
       headerEl.appendChild(titleEl);
+    }
+
+    // Webhook alert: LIVE EVENT badge + source chip
+    if (isWebhook && metadata) {
+      const badge = document.createElement('span');
+      badge.className = 'message__live-badge';
+      badge.textContent = '⚡ LIVE';
+      headerEl.appendChild(badge);
+
+      if (metadata.source) {
+        const sourceChip = document.createElement('span');
+        sourceChip.className = 'message__source-chip';
+        const sourceIcons = { github: '🐙', logs: '📋', billing: '💰', firebase: '🔥', iam: '🔐' };
+        sourceChip.textContent = `${sourceIcons[metadata.source] || '📡'} ${metadata.source.toUpperCase()}`;
+        headerEl.appendChild(sourceChip);
+      }
     }
 
     if (timestamp) {
