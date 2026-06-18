@@ -5,6 +5,13 @@ ScrantonOS is a persistent, multi-agent orchestration engine and web interface b
 ## Features
 
 - **Multi-Agent Orchestration Loops**: Requests are received by the orchestrator (Michael) and routed to subject matter experts (Dwight for SRE, Oscar for FinOps, Stanley for IAM, etc.). Michael evaluates their responses and can chain tasks to other agents (e.g., Dwight finds an error -> Pam generates a report).
+- **Interactive Data Dashboard 📊**: A slide-out visualization drawer built with `Chart.js` to view system telemetry and analytics. It displays beautiful, dynamic charts generated from metadata returned by:
+  - **Oscar (FinOps)**: A structured bar chart detailing billing breakdowns and anomalies.
+  - **Dwight (SRE)**: A pie chart mapping system log error distribution and resource bottlenecks.
+  - **Angela (Firebase)**: A bar chart visualizing Firebase crash rates and device breakdowns.
+  - **Kevin (Metrics)**: A custom metric grid calculating "Keleven-adjusted" calculations.
+- **Jim Halpert's Multimodal UI/UX Reviews 📎**: Upload frontend screenshots via the paperclip icon in the chat. The app converts the files to Base64, transmits them over WebSockets, and routes them as native image parameters to the Google Antigravity SDK using Gemini 1.5, allowing Jim to review layouts, alignments, and joke about the design quality.
+- **Async Webhook Alerts & Live Badges ⚡**: A specialized HTTP endpoint (`POST /api/webhooks/alerts`) allows third-party tools (GitHub Actions, Firebase, Prometheus) to push live status alerts. Active WebSocket clients receive real-time, toast-style notifications marked with high-visibility "⚡ LIVE" badges.
 - **Persistent State & Audit Logging**: 
   - `DEV` Mode: Uses local CSV files for conversation memory, session tracking, and audit logging.
   - `PROD` Mode: Seamlessly switches to Google Cloud Firestore for serverless, horizontally scalable persistence.
