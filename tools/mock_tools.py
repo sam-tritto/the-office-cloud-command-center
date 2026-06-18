@@ -197,7 +197,7 @@ def verify_approval_token(request_id: str, token: str) -> bool:
 # IAM Grant (with HITL verification)
 # ═══════════════════════════════════════════════════════════════════════
 
-def apply_iam_grant(user: str, role: str, approval_token: str = "") -> dict[str, Any]:
+def apply_iam_grant(user: str, role: str, approval_token: str = "", request_id: str = "") -> dict[str, Any]:
     """
     Mock IAM grant. Rejects unless a valid HMAC approval token is provided.
     This enforces the HITL gate even at the tool level.
@@ -222,8 +222,24 @@ def apply_iam_grant(user: str, role: str, approval_token: str = "") -> dict[str,
                 "reason": "This role requires human-in-the-loop approval. No approval token provided.",
                 "requires_hitl": True,
             }
-        # In mock mode we can't verify against a real request_id, so we accept any non-empty token
-        # In production, verify_approval_token would be called with the real request_id
+        if not request_id:
+            return {
+                "success": False,
+                "user": user,
+                "role": role,
+                "reason": "This role requires human-in-the-loop approval. No Request ID provided for verification.",
+                "requires_hitl": True,
+            }
+        
+        # Enforce HMAC signature check
+        if not verify_approval_token(request_id, approval_token):
+            return {
+                "success": False,
+                "user": user,
+                "role": role,
+                "reason": "Security violation: Invalid or forged approval token. Transaction aborted.",
+                "requires_hitl": True,
+            }
 
     # Auto-allowed or approved
     return {
@@ -233,6 +249,7 @@ def apply_iam_grant(user: str, role: str, approval_token: str = "") -> dict[str,
         "reason": f"Role '{role}' granted to '{user}' successfully.",
         "mock": True,
     }
+
 
 
 # ═══════════════════════════════════════════════════════════════════════

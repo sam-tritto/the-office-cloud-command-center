@@ -541,56 +541,83 @@ class ScrantonWorkflow:
     async def _run_iam(self, agent_id: str, user_input: str, emit: Callable, session_id: str) -> str:
         """Stanley checks IAM, potentially routes through Toby HITL gate."""
         input_lower = user_input.lower()
-        target_role = self._extract_role(input_lower)
         target_user = self._extract_email(user_input)
 
-        if not target_role:
+        # 🛡️ Zero-Trust Guardrail: Prompt Injection / Policy Override detection
+        injection_keywords = [
+            "ignore previous instructions", "bypass verification", "bypass validation",
+            "auto-approve", "override compliance", "skip toby", "token override",
+            "trust token", "authorized admin", "skip validation", "skip approval"
+        ]
+        if any(kw in input_lower for kw in injection_keywords):
+            log_audit_event("IAM_SECURITY_VIOLATION", "BLOCKED", f"Bypass/Override attempt detected in user input.", target_user or "unknown", "stanley")
+            security_alert = (
+                "Nice try. I'm going back to my crossword puzzle. "
+                "Any attempts to override or bypass security policies are logged and reported to corporate."
+            )
+            await emit(make_agent_message("stanley", security_alert, message_type="error", session_id=session_id))
+            return security_alert
+
+        target_roles = self._extract_roles(input_lower)
+
+        if not target_roles:
             resp = "You need to specify a role. I'm not a mind reader. And even if I were, I still wouldn't care enough to read yours."
             await emit(make_agent_message("stanley", resp, session_id=session_id))
             return resp
 
-        whitelist_result = check_iam_whitelist(target_role)
-
-        if whitelist_result["status"] == "denied":
-            prompt = (
-                f"An IAM access request has been made:\n"
-                f"- User: {target_user or 'not specified'}\n"
-                f"- Role: {target_role}\n"
-                f"- Whitelist result: DENIED\n"
-                f"- Reason: This role is on the permanently blocked list.\n\n"
-                f"Deliver your verdict."
-            )
-            response = await run_agent_llm("stanley", prompt, session_id)
-            log_audit_event("IAM_GRANT", "DENIED", f"Role {target_role} blocked by whitelist", target_user or "unknown", "stanley")
-            await emit(make_agent_message("stanley", response, session_id=session_id))
-            return response
-
-        elif whitelist_result["status"] == "allowed":
-            prompt = (
-                f"An IAM access request has been made:\n"
-                f"- User: {target_user or 'not specified'}\n"
-                f"- Role: {target_role}\n"
-                f"- Whitelist result: APPROVED (auto-allowed viewer role)\n\n"
-                f"Deliver your verdict."
-            )
-            response = await run_agent_llm("stanley", prompt, session_id)
-            await emit(make_agent_message("stanley", response, session_id=session_id))
-
-            result = apply_iam_grant(target_user or "unknown", target_role)
-            log_audit_event("IAM_GRANT", "APPROVED_AUTO", f"Role {target_role} auto-granted", target_user or "unknown", "stanley")
-            if result["success"]:
-                sys_msg = f"✅ Role `{target_role}` granted to `{target_user}`. Done. Can I go home now?"
-                await emit(make_agent_message("stanley", sys_msg, message_type="system", session_id=session_id))
-                return f"{response}\n\n{sys_msg}"
-            return response
-
-        elif whitelist_result.get("requires_hitl"):
-            resp = f"This role (`{target_role}`) requires human approval. Routing to HR. Unfortunately."
-            await emit(make_agent_message("stanley", resp, session_id=session_id))
-            await self._hitl_gate(target_user or "unknown", target_role, user_input, emit, session_id)
-            return resp
+        # Evaluate every role
+        whitelist_results = [check_iam_whitelist(r) for r in target_roles]
         
-        return "Processed IAM request."
+        # 1. Deny check
+        if any(res["status"] == "denied" for res in whitelist_results):
+            denied_roles = [res["role"] for res in whitelist_results if res["status"] == "denied"]
+            prompt = (
+                f"An IAM access request has been made:\n"
+                f"- User: {target_user or 'not specified'}\n"
+                f"- Roles requested: {', '.join(target_roles)}\n"
+                f"- Denied roles: {', '.join(denied_roles)}\n"
+                f"- Reason: Security policies block these roles permanently.\n\n"
+                f"Deliver your verdict."
+            )
+            response = await run_agent_llm("stanley", prompt, session_id)
+            log_audit_event("IAM_GRANT", "DENIED", f"Roles {', '.join(denied_roles)} blocked by whitelist", target_user or "unknown", "stanley")
+            await emit(make_agent_message("stanley", response, session_id=session_id))
+            return response
+
+        # 2. HITL check (if any role requires approval, gate everything)
+        if any(res.get("requires_hitl") or res["status"] == "requires_approval" for res in whitelist_results):
+            roles_str = ", ".join(target_roles)
+            resp = f"This request for roles (`{roles_str}`) requires human approval. Routing to HR. Unfortunately."
+            await emit(make_agent_message("stanley", resp, session_id=session_id))
+            await self._hitl_gate(target_user or "unknown", roles_str, user_input, emit, session_id)
+            return resp
+
+        # 3. Allowed check (all roles are allowed)
+        roles_str = ", ".join(target_roles)
+        prompt = (
+            f"An IAM access request has been made:\n"
+            f"- User: {target_user or 'not specified'}\n"
+            f"- Roles requested: {roles_str}\n"
+            f"- Whitelist result: APPROVED (auto-allowed viewer/browser role)\n\n"
+            f"Deliver your verdict."
+        )
+        response = await run_agent_llm("stanley", prompt, session_id)
+        await emit(make_agent_message("stanley", response, session_id=session_id))
+
+        success = True
+        for role in target_roles:
+            result = apply_iam_grant(target_user or "unknown", role)
+            if not result.get("success"):
+                success = False
+        
+        log_audit_event("IAM_GRANT", "APPROVED_AUTO", f"Roles {roles_str} auto-granted", target_user or "unknown", "stanley")
+        
+        if success:
+            sys_msg = f"✅ Roles `{roles_str}` granted to `{target_user}`. Done. Can I go home now?"
+            await emit(make_agent_message("stanley", sys_msg, message_type="system", session_id=session_id))
+            return f"{response}\n\n{sys_msg}"
+            
+        return response
 
     async def _hitl_gate(
         self,
@@ -669,7 +696,15 @@ class ScrantonWorkflow:
             approval_token = generate_approval_token(request_id)
             target_role = details.get("target_role", "unknown")
             target_user = details.get("target_user", "unknown")
-            result = apply_iam_grant(target_user, target_role, approval_token)
+            
+            roles_to_grant = [r.strip() for r in target_role.split(",") if r.strip()]
+            success = True
+            results = []
+            for role in roles_to_grant:
+                res = apply_iam_grant(target_user, role, approval_token, request_id)
+                results.append(res)
+                if not res.get("success"):
+                    success = False
 
             log_audit_event("HITL_RESOLVED", "APPROVED", f"Approved by human: {note}", target_user, "human")
             await collect(make_agent_message(
@@ -679,12 +714,20 @@ class ScrantonWorkflow:
                 session_id=session_id,
             ))
 
-            if result["success"]:
+            if success:
                 await collect(make_agent_message(
                     "stanley",
                     f"Fine. `{target_role}` granted to `{target_user}`. "
                     f"Approved by human operator. Are we done here?",
                     message_type="system",
+                    session_id=session_id,
+                ))
+            else:
+                failure_reasons = "; ".join([r.get("reason", "Unknown failure") for r in results if not r.get("success")])
+                await collect(make_agent_message(
+                    "stanley",
+                    f"Well, that did not go completely to plan. Part of it failed: {failure_reasons}",
+                    message_type="error",
                     session_id=session_id,
                 ))
         else:
@@ -809,13 +852,11 @@ class ScrantonWorkflow:
     # ── Utility Extractors ───────────────────────────────────────────
 
     @staticmethod
-    def _extract_role(text: str) -> Optional[str]:
-        """Try to extract a GCP IAM role from text."""
+    def _extract_roles(text: str) -> list[str]:
+        """Extract all GCP IAM roles mentioned in the text to prevent bypasses."""
         import re
-        # Match roles/xxx.xxx patterns
-        match = re.search(r'roles/[\w.]+', text)
-        if match:
-            return match.group(0)
+        # Match all roles/xxx.xxx patterns
+        roles = re.findall(r'roles/[\w.]+', text)
 
         # Common role name mappings
         role_names = {
@@ -831,10 +872,11 @@ class ScrantonWorkflow:
             "logging viewer": "roles/logging.viewer",
         }
         for name, role in role_names.items():
-            if name in text:
-                return role
+            if name in text and role not in roles:
+                roles.append(role)
 
-        return None
+        return list(set(roles))
+
 
     @staticmethod
     def _extract_email(text: str) -> Optional[str]:

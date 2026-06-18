@@ -86,7 +86,7 @@ def verify_approval_token(request_id: str, token: str) -> bool:
     return _verify(request_id, token)
 
 
-def apply_iam_grant(user: str, role: str, approval_token: str = "") -> dict[str, Any]:
+def apply_iam_grant(user: str, role: str, approval_token: str = "", request_id: str = "") -> dict[str, Any]:
     """
     Apply an IAM policy binding in GCP.
 
@@ -98,6 +98,7 @@ def apply_iam_grant(user: str, role: str, approval_token: str = "") -> dict[str,
         "PROD IAM grants require IAM Admin API access. "
         "Ensure service account has `roles/resourcemanager.projectIamAdmin`."
     )
+
 
 
 def hard_purge_user_data(user_id: str) -> dict[str, Any]:
@@ -118,7 +119,7 @@ def hard_purge_user_data(user_id: str) -> dict[str, Any]:
 
 
 def scan_tech_debt() -> dict[str, Any]:
-    """
+    r"""
     Scan the actual codebase for TODO/FIXME comments.
 
     PROD implementation would use:
@@ -127,6 +128,7 @@ def scan_tech_debt() -> dict[str, Any]:
         - Calculate age from git blame timestamps
     """
     raise NotImplementedError(
+
         "PROD tech debt scanner requires access to the source repository. "
         "Configure REPO_PATH or GITHUB_TOKEN."
     )
