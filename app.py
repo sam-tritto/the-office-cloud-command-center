@@ -486,6 +486,8 @@ class ScrantonWorkflow:
             response_text = await self._run_git_ops(agent_id, user_input, emit, session_id)
         elif intent == CommandIntent.FIREBASE:
             response_text = await self._run_firebase(agent_id, user_input, emit, session_id)
+        elif intent == CommandIntent.METRICS:
+            response_text = await self._run_metrics(agent_id, user_input, emit, session_id)
         else:
             # Generic specialist — just pass the prompt through
             prompt = f"User request: {user_input}\n\nProvide your expert analysis."
@@ -509,7 +511,14 @@ class ScrantonWorkflow:
                 f"Analyze these logs and provide your threat assessment."
             )
             response = await run_agent_llm(agent_id, prompt, session_id)
-            await emit(make_agent_message(agent_id, response, session_id=session_id))
+            
+            metadata = {
+                "chart_data": {
+                    "type": "sre",
+                    "metrics": metrics
+                }
+            }
+            await emit(make_agent_message(agent_id, response, session_id=session_id, metadata=metadata))
             return response
 
         except Exception as e:
@@ -530,7 +539,14 @@ class ScrantonWorkflow:
                 f"Provide your detailed financial analysis."
             )
             response = await run_agent_llm(agent_id, prompt, session_id)
-            await emit(make_agent_message(agent_id, response, session_id=session_id))
+            
+            metadata = {
+                "chart_data": {
+                    "type": "finops",
+                    "metrics": metrics
+                }
+            }
+            await emit(make_agent_message(agent_id, response, session_id=session_id, metadata=metadata))
             return response
 
         except Exception as e:
@@ -842,10 +858,60 @@ class ScrantonWorkflow:
                 f"Audit this crash data and report the issues that must be addressed immediately."
             )
             response = await run_agent_llm(agent_id, prompt, session_id)
-            await emit(make_agent_message(agent_id, response, session_id=session_id))
+            
+            metadata = {
+                "chart_data": {
+                    "type": "firebase",
+                    "metrics": crashlytics_data
+                }
+            }
+            await emit(make_agent_message(agent_id, response, session_id=session_id, metadata=metadata))
             return response
         except Exception as e:
             error_resp = f"This is unacceptable. I cannot access the Firebase Crashlytics dashboard. Error: {e}"
+            await emit(make_agent_message(agent_id, error_resp, message_type="error", session_id=session_id))
+            return error_resp
+
+    async def _run_metrics(self, agent_id: str, user_input: str, emit: Callable, session_id: str) -> str:
+        """Kevin pulls the master dashboard metrics."""
+        try:
+            # Aggregate stats from different mock tools
+            sre_data = analyze_logs_structured(fetch_app_logs())
+            finops_data = compute_billing_metrics(query_billing_data())
+            firebase_data = fetch_firebase_crashlytics()
+            
+            # Kevin's unique math
+            total_incidents = sre_data["total_entries"]
+            keleven_adjustment = random.randint(100, 500)
+            
+            metrics = {
+                "total_spend": f"${finops_data['total_cost_usd']:,.2f}",
+                "budget_utilization": f"{finops_data['budget_utilization_pct']}%",
+                "total_errors": sre_data["error_count"],
+                "critical_threats": sre_data["critical_count"],
+                "crash_free_users": f"{firebase_data['crash_free_users_pct']}%",
+                "keleven_variable": keleven_adjustment,
+                "adjusted_incidents": total_incidents + keleven_adjustment
+            }
+
+            prompt = (
+                f"User request: {user_input}\n\n"
+                f"Here are the aggregated metrics for the company dashboard:\n"
+                f"```json\n{json.dumps(metrics, indent=2)}\n```\n\n"
+                f"Provide a summary of these numbers. Be sure to explain your 'Keleven' adjustment."
+            )
+            response = await run_agent_llm(agent_id, prompt, session_id)
+            
+            metadata = {
+                "chart_data": {
+                    "type": "metrics",
+                    "metrics": metrics
+                }
+            }
+            await emit(make_agent_message(agent_id, response, session_id=session_id, metadata=metadata))
+            return response
+        except Exception as e:
+            error_resp = f"I dropped the chili... I mean, the metrics. Error: {e}"
             await emit(make_agent_message(agent_id, error_resp, message_type="error", session_id=session_id))
             return error_resp
 

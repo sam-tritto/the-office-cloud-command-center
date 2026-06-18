@@ -941,3 +941,141 @@ body::before {
   flex-shrink: 0;
 }
 
+/* ── Dashboard Drawer ────────────────────────────────────────── */
+
+.app {
+  flex-direction: row;
+  transition: padding-right var(--transition-base);
+}
+
+.chat {
+  width: 100%;
+  transition: width var(--transition-base);
+}
+
+.input-area {
+  width: 100%;
+  transition: width var(--transition-base);
+}
+
+.dashboard-drawer {
+  position: absolute;
+  top: 77px; /* Below header */
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  background: var(--bg-elevated);
+  border-left: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(100%);
+  transition: transform var(--transition-spring);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-drawer.active {
+  transform: translateX(0);
+}
+
+.dashboard-drawer__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.dashboard-drawer__header h2 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.dashboard-drawer__close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.dashboard-drawer__close:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.dashboard-drawer__content {
+  padding: var(--space-lg);
+  flex: 1;
+  overflow-y: auto;
+}
+
+.chart-container {
+  width: 100%;
+  aspect-ratio: 4/3;
+  margin-bottom: var(--space-lg);
+}
+
+/* Kevin's Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.metric-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric-card__label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-card__value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.metric-card--highlight {
+  background: rgba(37, 99, 235, 0.05);
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+.metric-card--highlight .metric-card__value {
+  color: var(--brand-primary);
+}
+
+/* Responsive adjust for drawer */
+@media (min-width: 1200px) {
+  body.drawer-open .chat {
+    width: calc(100% - 400px);
+  }
+  body.drawer-open .input-area {
+    width: calc(100% - 400px);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-drawer {
+    width: 100%;
+  }
+}
+

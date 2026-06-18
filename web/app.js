@@ -42,8 +42,24 @@
   const statusDot = document.getElementById('status-dot');
   const statusText = document.getElementById('status-text');
   const typingIndicator = document.getElementById('typing-indicator');
-  const typingAvatar = document.getElementById('typing-avatar');
   const typingName = document.getElementById('typing-name');
+
+  // Dashboard DOM
+  const dashboardDrawer = document.getElementById('dashboard-drawer');
+  const dashboardTitle = document.getElementById('dashboard-title');
+  const closeDashboardBtn = document.getElementById('close-dashboard-btn');
+  const chartContainer = document.getElementById('chart-container');
+  const dashboardChartCanvas = document.getElementById('dashboard-chart');
+  const metricsGrid = document.getElementById('metrics-grid');
+  
+  let currentChartInstance = null;
+
+  if (closeDashboardBtn) {
+    closeDashboardBtn.addEventListener('click', () => {
+      dashboardDrawer.classList.remove('active');
+      document.body.classList.remove('drawer-open');
+    });
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // WebSocket Connection
@@ -148,6 +164,123 @@
       timestamp: timestamp,
       metadata: metadata,
     });
+
+    if (metadata && metadata.chart_data) {
+      renderChartData(metadata.chart_data);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Dashboard & Charts Rendering
+  // ═══════════════════════════════════════════════════════════════
+
+  function renderChartData(chartData) {
+    if (!dashboardDrawer || !window.Chart) return;
+
+    // Open drawer
+    dashboardDrawer.classList.add('active');
+    document.body.classList.add('drawer-open');
+
+    // Reset view
+    chartContainer.style.display = 'none';
+    metricsGrid.style.display = 'none';
+    if (currentChartInstance) {
+      currentChartInstance.destroy();
+      currentChartInstance = null;
+    }
+
+    const { type, metrics } = chartData;
+
+    if (type === 'metrics') {
+      // Kevin's Key Metrics Grid
+      dashboardTitle.textContent = "Kevin's Key Metrics";
+      metricsGrid.style.display = 'grid';
+      metricsGrid.innerHTML = `
+        <div class="metric-card">
+          <span class="metric-card__label">Total Spend</span>
+          <span class="metric-card__value">${metrics.total_spend}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-card__label">Budget Util</span>
+          <span class="metric-card__value">${metrics.budget_utilization}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-card__label">Crash Free</span>
+          <span class="metric-card__value">${metrics.crash_free_users}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-card__label">Critical Threats</span>
+          <span class="metric-card__value">${metrics.critical_threats}</span>
+        </div>
+        <div class="metric-card metric-card--highlight">
+          <span class="metric-card__label">Total Errors</span>
+          <span class="metric-card__value">${metrics.total_errors}</span>
+        </div>
+        <div class="metric-card metric-card--highlight" title="Plus the Keleven variable!">
+          <span class="metric-card__label">Adj. Incidents</span>
+          <span class="metric-card__value">${metrics.adjusted_incidents}</span>
+        </div>
+      `;
+      return;
+    }
+
+    // Chart.js visualizations
+    chartContainer.style.display = 'block';
+    let config = null;
+
+    if (type === 'sre') {
+      dashboardTitle.textContent = "Log Severity Distribution";
+      config = {
+        type: 'pie',
+        data: {
+          labels: ['Critical', 'Error', 'Warning'],
+          datasets: [{
+            data: [metrics.critical_count, metrics.error_count, metrics.warning_count],
+            backgroundColor: ['#dc2626', '#f97316', '#f59e0b'],
+            borderWidth: 0
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      };
+    } else if (type === 'finops') {
+      dashboardTitle.textContent = "Top Services by Cost";
+      const labels = metrics.top_services.map(s => Object.keys(s)[0]);
+      const data = metrics.top_services.map(s => Object.values(s)[0]);
+      config = {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Cost (USD)',
+            data: data,
+            backgroundColor: '#27AE60',
+            borderRadius: 4
+          }]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      };
+    } else if (type === 'firebase') {
+      dashboardTitle.textContent = "Recent Crash Occurrences";
+      const labels = metrics.recent_issues.map(i => i.issue_id);
+      const data = metrics.recent_issues.map(i => i.occurrences);
+      config = {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Occurrences',
+            data: data,
+            backgroundColor: '#E91E63',
+            borderRadius: 4
+          }]
+        },
+        options: { responsive: true, indexAxis: 'y', scales: { x: { beginAtZero: true } } }
+      };
+    }
+
+    if (config) {
+      currentChartInstance = new Chart(dashboardChartCanvas, config);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════

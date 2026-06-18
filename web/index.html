@@ -7,6 +7,7 @@
   <meta name="description" content="ScrantonOS: An agentic cloud operations command center powered by AI character personas from The Office.">
   <link rel="stylesheet" href="/static/index.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -57,6 +58,24 @@
         </button>
       </div>
     </div>
+
+    <!-- ─── Dashboard Drawer ─────────────────────────────── -->
+    <aside id="dashboard-drawer" class="dashboard-drawer">
+      <div class="dashboard-drawer__header">
+        <h2 id="dashboard-title">Dashboard</h2>
+        <button id="close-dashboard-btn" class="dashboard-drawer__close" title="Close Dashboard">✕</button>
+      </div>
+      <div class="dashboard-drawer__content" id="dashboard-content">
+        <!-- Chart.js Canvas -->
+        <div class="chart-container" id="chart-container" style="display: none;">
+          <canvas id="dashboard-chart"></canvas>
+        </div>
+        <!-- Kevin's Grid -->
+        <div class="metrics-grid" id="metrics-grid" style="display: none;">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+    </aside>
 
     <!-- ─── Chat Messages ──────────────────────────────── -->
     <main class="chat" id="chat-container">
