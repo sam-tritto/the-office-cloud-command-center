@@ -711,6 +711,71 @@ body::before {
   box-shadow: none;
 }
 
+/* ── Attachments ─────────────────────────────────────────────── */
+
+.attach-btn {
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.attach-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-accent);
+  color: var(--text-primary);
+}
+
+.image-preview {
+  display: flex;
+  position: relative;
+  width: fit-content;
+  margin-bottom: var(--space-md);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  background: var(--surface-1);
+  padding: var(--space-xs);
+  border: 1px solid var(--border-medium);
+}
+
+.image-preview img {
+  max-height: 80px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--error);
+  color: white;
+  border: none;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: background var(--transition-fast);
+}
+
+.remove-image-btn:hover {
+  background: #dc2626;
+}
+
 /* ── Error message type ──────────────────────────────────────── */
 
 .message--error .message__bubble {

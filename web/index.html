@@ -56,6 +56,9 @@
         <button class="command-item" data-cmd="How can we modernize the architecture?">
           <span class="cmd-icon">🚀</span><div class="cmd-text"><strong>/modernize</strong> Tech suggestions (Ryan)</div>
         </button>
+        <button class="command-item" data-cmd="Review this UI screenshot.">
+          <span class="cmd-icon">😏</span><div class="cmd-text"><strong>/review</strong> UI/UX Review (Jim)</div>
+        </button>
       </div>
     </div>
 
@@ -95,7 +98,13 @@
 
     <!-- ─── Input Area ─────────────────────────────────── -->
     <footer class="input-area">
+      <div id="image-preview-container" class="image-preview" style="display: none;">
+        <img id="image-preview-img" src="" alt="Attachment Preview">
+        <button id="remove-image-btn" class="remove-image-btn" title="Remove attachment">✕</button>
+      </div>
       <div class="input-wrapper">
+        <input type="file" id="image-upload" accept="image/*" style="display: none;">
+        <button id="attach-btn" class="attach-btn" title="Attach Image">📎</button>
         <textarea
           id="chat-input"
           class="input-field"

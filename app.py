@@ -261,6 +261,7 @@ async def run_agent_llm(
     prompt: str,
     session_id: str = "default",
     api_key: str = "",
+    attachment_path: Optional[str] = None,
 ) -> str:
     """
     Run an LLM agent using the Google Antigravity SDK.
@@ -303,7 +304,17 @@ async def run_agent_llm(
         )
 
         async with Agent(config) as agent:
-            response = await agent.chat(full_prompt)
+            if attachment_path:
+                from google.antigravity.types import Image
+                import os
+                if os.path.exists(attachment_path):
+                    img = Image.from_file(attachment_path)
+                    response = await agent.chat([full_prompt, img])
+                else:
+                    response = await agent.chat(full_prompt)
+            else:
+                response = await agent.chat(full_prompt)
+                
             resp_text = await response.text()
             tokens = len(full_prompt.split()) + len(resp_text.split())
             save_message(session_id, agent_id, AGENT_DISPLAY_NAMES.get(agent_id, agent_id), "agent_response", resp_text, tokens)
@@ -377,7 +388,7 @@ class ScrantonWorkflow:
             if msg.flavor_quote:
                 print(f'  💬 "{msg.flavor_quote}"')
 
-    async def process_input(self, user_input: str, session_id: str = "default") -> list[AgentMessage]:
+    async def process_input(self, user_input: str, session_id: str = "default", attachment_path: Optional[str] = None) -> list[AgentMessage]:
         """
         Main entry point. Process a user's natural language input
         through the entire ScrantonOS pipeline.
@@ -410,7 +421,7 @@ class ScrantonWorkflow:
                 f"The system has classified this as: {intent.value}\n"
                 f"Route this to the appropriate team member and introduce them."
             )
-            michael_response = await run_agent_llm("michael", michael_prompt, session_id)
+            michael_response = await run_agent_llm("michael", michael_prompt, session_id, attachment_path=attachment_path)
             await collect_and_emit(make_agent_message("michael", michael_response, session_id=session_id))
 
             # Step 3: Central Michael-Controlled Loop for Multi-Agent Chains
@@ -424,7 +435,7 @@ class ScrantonWorkflow:
                 if target_agent == "michael":
                     break
                 else:
-                    specialist_response = await self._run_specialist(target_agent, current_intent, current_input, collect_and_emit, session_id)
+                    specialist_response = await self._run_specialist(target_agent, current_intent, current_input, collect_and_emit, session_id, attachment_path)
                     
                     # Agent Banter
                     if random.random() < 0.15:
@@ -468,6 +479,7 @@ class ScrantonWorkflow:
         user_input: str,
         emit: Callable,
         session_id: str = "default",
+        attachment_path: Optional[str] = None,
     ) -> str:
         """Run a specialist agent with its relevant tools and context."""
         response_text = ""
@@ -491,7 +503,9 @@ class ScrantonWorkflow:
         else:
             # Generic specialist — just pass the prompt through
             prompt = f"User request: {user_input}\n\nProvide your expert analysis."
-            response_text = await run_agent_llm(agent_id, prompt, session_id)
+            if attachment_path:
+                prompt += "\n\nThe user also attached an image/document for you to review."
+            response_text = await run_agent_llm(agent_id, prompt, session_id, attachment_path=attachment_path)
             await emit(make_agent_message(agent_id, response_text, session_id=session_id))
             
         return response_text

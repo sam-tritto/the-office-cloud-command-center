@@ -44,6 +44,15 @@
   const typingIndicator = document.getElementById('typing-indicator');
   const typingName = document.getElementById('typing-name');
 
+  // Attachment DOM
+  const imageUpload = document.getElementById('image-upload');
+  const attachBtn = document.getElementById('attach-btn');
+  const imagePreviewContainer = document.getElementById('image-preview-container');
+  const imagePreviewImg = document.getElementById('image-preview-img');
+  const removeImageBtn = document.getElementById('remove-image-btn');
+  
+  let currentAttachmentBase64 = null;
+
   // Dashboard DOM
   const dashboardDrawer = document.getElementById('dashboard-drawer');
   const dashboardTitle = document.getElementById('dashboard-title');
@@ -579,26 +588,72 @@
 
   function sendMessage() {
     const text = chatInput.value.trim();
-    if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+    if ((!text && !currentAttachmentBase64) || !ws || ws.readyState !== WebSocket.OPEN) return;
 
     ws.send(JSON.stringify({
       type: 'chat',
       message: text,
+      attachment_base64: currentAttachmentBase64 || "",
     }));
 
+    // Clear input
     chatInput.value = '';
     chatInput.style.height = 'auto';
     sendBtn.disabled = true;
 
+    // Clear attachment
+    currentAttachmentBase64 = null;
+    imageUpload.value = '';
+    imagePreviewContainer.style.display = 'none';
+    imagePreviewImg.src = '';
+
     // Show typing indicator for Michael (he receives first)
     showTyping('michael');
+  }
+
+  // File Upload Handlers
+  if (attachBtn && imageUpload) {
+    attachBtn.addEventListener('click', () => {
+      imageUpload.click();
+    });
+
+    imageUpload.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Basic validation
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        currentAttachmentBase64 = event.target.result;
+        imagePreviewImg.src = currentAttachmentBase64;
+        imagePreviewContainer.style.display = 'flex';
+        sendBtn.disabled = false; // Allow sending just an image
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (removeImageBtn) {
+    removeImageBtn.addEventListener('click', () => {
+      currentAttachmentBase64 = null;
+      imageUpload.value = '';
+      imagePreviewContainer.style.display = 'none';
+      imagePreviewImg.src = '';
+      // Update send button state
+      sendBtn.disabled = !chatInput.value.trim();
+    });
   }
 
   // Auto-resize textarea
   chatInput.addEventListener('input', () => {
     chatInput.style.height = 'auto';
     chatInput.style.height = Math.min(chatInput.scrollHeight, 160) + 'px';
-    sendBtn.disabled = !chatInput.value.trim();
+    sendBtn.disabled = !chatInput.value.trim() && !currentAttachmentBase64;
   });
 
   // Enter to send (Shift+Enter for newline)

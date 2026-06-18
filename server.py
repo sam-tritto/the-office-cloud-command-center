@@ -8,9 +8,11 @@ between the browser and the ScrantonOS workflow engine.
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 import os
+import uuid
 from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
@@ -155,8 +157,28 @@ async def websocket_endpoint(ws: WebSocket):
 
             msg_type = msg.get("type", "chat")
             content = msg.get("message", "")
+            attachment_b64 = msg.get("attachment_base64", "")
 
             if msg_type == "chat" and content:
+                # Handle base64 attachment
+                attachment_path = None
+                if attachment_b64:
+                    try:
+                        # Extract the base64 content (strip 'data:image/png;base64,' prefix)
+                        if "," in attachment_b64:
+                            header, encoded = attachment_b64.split(",", 1)
+                        else:
+                            encoded = attachment_b64
+                        
+                        img_data = base64.b64decode(encoded)
+                        temp_filename = f"/tmp/scranton_upload_{uuid.uuid4().hex[:8]}.png"
+                        with open(temp_filename, "wb") as f:
+                            f.write(img_data)
+                        attachment_path = temp_filename
+                        logger.info(f"Saved attachment to {attachment_path}")
+                    except Exception as e:
+                        logger.error(f"Failed to decode attachment: {e}")
+
                 # Echo user message back to the session
                 user_msg = AgentMessage(
                     session_id=session_id,
@@ -169,7 +191,7 @@ async def websocket_endpoint(ws: WebSocket):
 
                 # Process through workflow
                 try:
-                    await workflow.process_input(content, session_id=session_id)
+                    await workflow.process_input(content, session_id=session_id, attachment_path=attachment_path)
                 except Exception as e:
                     logger.error(f"Workflow error: {e}", exc_info=True)
                     error_msg = AgentMessage(
