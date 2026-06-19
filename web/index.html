@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ScrantonOS — Dunder Mifflin Cloud Command Center</title>
   <meta name="description" content="ScrantonOS: An agentic cloud operations command center powered by AI character personas from The Office.">
-  <link rel="stylesheet" href="/static/index.css">
+  <link rel="stylesheet" href="/static/index.css?v=1.0.1">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -23,6 +23,13 @@
         </div>
       </div>
       <div class="header__status">
+        <div class="coop-toggle">
+          <label class="switch">
+            <input type="checkbox" id="coop-toggle-btn">
+            <span class="slider round"></span>
+          </label>
+          <span class="coop-toggle__label">Cooperative Mode</span>
+        </div>
         <button id="help-btn" class="help-btn" title="Show Commands">?</button>
         <div class="status-indicator" id="connection-status">
           <span class="status-dot" id="status-dot"></span>

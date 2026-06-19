@@ -43,6 +43,35 @@
   const statusText = document.getElementById('status-text');
   const typingIndicator = document.getElementById('typing-indicator');
   const typingName = document.getElementById('typing-name');
+  const coopToggleBtn = document.getElementById('coop-toggle-btn');
+
+  function classifyIntent(text) {
+    const inputLower = text.toLowerCase();
+    
+    const INTENTS = {
+      dwight: ["logs", "crash", "error", "memory", "leak", "oom", "container", "failure", "uptime", "incident", "outage", "alert", "monitor", "sre", "reliability", "health check", "status", "down", "502", "504", "timeout", "latency", "performance", "system"],
+      oscar: ["billing", "cost", "spend", "budget", "expense", "invoice", "finops", "price", "charge", "bigquery cost", "gpu cost", "compute cost", "storage cost", "burn rate", "savings", "over budget", "cloud spend", "money"],
+      angela: ["firebase", "crashlytics", "anr", "mobile crash", "app crash", "firebase config", "fcm", "firestore", "realtime database"],
+      stanley: ["iam", "access", "permission", "role", "grant", "revoke", "policy", "service account", "credentials", "authenticate", "authorize", "security", "admin access", "viewer access"],
+      jan: ["todo", "fixme", "hack", "technical debt", "tech debt", "backlog", "sprint", "velocity", "overdue", "ticket", "code quality", "cleanup", "refactor"],
+      jim: ["ui", "ux", "frontend", "front-end", "css", "layout", "design", "component", "styling", "pixel", "alignment", "responsive", "accessibility", "a11y", "visual"],
+      meredith: ["chaos", "fuzz", "stress test", "load test", "rate limit", "ddos", "benchmark", "performance test", "breaking point", "resilience", "fault injection"],
+      gabe: ["documentation", "docs", "wiki", "how to", "how do", "guide", "manual", "procedure", "protocol", "onboarding", "reference", "section"],
+      bob_vance: ["legacy", "migration", "archive", "cold storage", "glacier", "old system", "mainframe", "on-premise", "on-prem", "migrate", "backup", "archival"],
+      creed: ["delete", "purge", "erase", "gdpr", "right to be forgotten", "pii", "remove user", "data deletion", "scrub", "wipe", "forget", "destroy"],
+      pam: ["report", "summary", "artifact", "document", "format", "generate report", "create report", "executive summary"],
+      erin: ["git", "deploy", "deployment", "ci/cd", "pipeline", "build", "merge", "branch", "pr", "pull request", "commit", "release", "rollback"],
+      kevin: ["dashboard", "metrics", "count", "calculate", "math", "how many", "total", "sum", "average", "stats"],
+      ryan: ["modernize", "rewrite", "scale", "architecture", "rust", "web3", "ai", "serverless", "go", "golang", "microservices", "wuphf"]
+    };
+
+    for (const [agent, keywords] of Object.entries(INTENTS)) {
+      if (keywords.some(kw => inputLower.includes(kw))) {
+        return agent;
+      }
+    }
+    return "michael";
+  }
 
   // Attachment DOM
   const imageUpload = document.getElementById('image-upload');
@@ -590,10 +619,13 @@
     const text = chatInput.value.trim();
     if ((!text && !currentAttachmentBase64) || !ws || ws.readyState !== WebSocket.OPEN) return;
 
+    const cooperative = coopToggleBtn ? coopToggleBtn.checked : false;
+
     ws.send(JSON.stringify({
       type: 'chat',
       message: text,
       attachment_base64: currentAttachmentBase64 || "",
+      cooperative: cooperative,
     }));
 
     // Clear input
@@ -607,8 +639,12 @@
     imagePreviewContainer.style.display = 'none';
     imagePreviewImg.src = '';
 
-    // Show typing indicator for Michael (he receives first)
-    showTyping('michael');
+    // Show typing indicator
+    if (cooperative) {
+      showTyping('michael');
+    } else {
+      showTyping(classifyIntent(text));
+    }
   }
 
   // File Upload Handlers

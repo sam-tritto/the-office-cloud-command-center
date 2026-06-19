@@ -26,8 +26,9 @@ from config import get_config
 from schemas.models import AgentMessage
 from database import create_session
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("scranton-server")
+logger.setLevel(logging.INFO)
 
 app = FastAPI(title="ScrantonOS", description="Dunder Mifflin Cloud Command Center")
 
@@ -179,6 +180,8 @@ async def websocket_endpoint(ws: WebSocket):
                     except Exception as e:
                         logger.error(f"Failed to decode attachment: {e}")
 
+                cooperative = msg.get("cooperative", False)
+
                 # Echo user message back to the session
                 user_msg = AgentMessage(
                     session_id=session_id,
@@ -191,7 +194,12 @@ async def websocket_endpoint(ws: WebSocket):
 
                 # Process through workflow
                 try:
-                    await workflow.process_input(content, session_id=session_id, attachment_path=attachment_path)
+                    await workflow.process_input(
+                        content,
+                        session_id=session_id,
+                        attachment_path=attachment_path,
+                        cooperative=cooperative,
+                    )
                 except Exception as e:
                     logger.error(f"Workflow error: {e}", exc_info=True)
                     error_msg = AgentMessage(

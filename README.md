@@ -53,20 +53,18 @@ The project includes a blazing-fast `Dockerfile` (using `uv` for dependency reso
 
 ### Option B: Using Local Python (Recommended for development)
 
-1. Ensure you have Python 3.11+ installed.
-2. Create and activate a virtual environment:
+1. Ensure you have Python 3.11+ installed and `uv` installed.
+2. Create the virtual environment using `uv`:
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   uv venv venv
    ```
-3. Install dependencies using `uv` (or standard `pip`):
+3. Install dependencies using `uv`:
    ```bash
-   pip install uv
-   uv pip install -r requirements.txt
+   uv pip install -r requirements.txt --python venv
    ```
 4. Start the FastAPI server:
    ```bash
-   python server.py
+   venv/bin/python server.py
    ```
 5. Open your browser and navigate to: **http://localhost:8000**
 

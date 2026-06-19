@@ -8,3 +8,4 @@ python-dotenv>=1.0
 google-cloud-secret-manager>=2.20.0
 google-cloud-firestore>=2.15.0
 Faker>=25.0.0
+google-genai>=0.1.1

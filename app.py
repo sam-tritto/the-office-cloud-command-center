@@ -64,8 +64,9 @@ from agents.ryan import RYAN_INSTRUCTION
 
 from agents import get_random_quote, CHARACTER_COLORS
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("scranton-os")
+logger.setLevel(logging.INFO)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -388,7 +389,13 @@ class ScrantonWorkflow:
             if msg.flavor_quote:
                 print(f'  💬 "{msg.flavor_quote}"')
 
-    async def process_input(self, user_input: str, session_id: str = "default", attachment_path: Optional[str] = None) -> list[AgentMessage]:
+    async def process_input(
+        self,
+        user_input: str,
+        session_id: str = "default",
+        attachment_path: Optional[str] = None,
+        cooperative: bool = False,
+    ) -> list[AgentMessage]:
         """
         Main entry point. Process a user's natural language input
         through the entire ScrantonOS pipeline.
@@ -412,7 +419,12 @@ class ScrantonWorkflow:
             
             # Step 1: Classify intent (deterministic — cannot be prompt-injected)
             intent = classify_intent(user_input)
-            logger.info(f"Classified intent: {intent.value}")
+            logger.info(f"Classified intent: {intent.value} (cooperative={cooperative})")
+
+            if not cooperative:
+                target_agent = INTENT_AGENT_MAP.get(intent, "michael")
+                await self._run_specialist(target_agent, intent, user_input, collect_and_emit, session_id, attachment_path)
+                return messages
 
             # Step 2: Michael acknowledges and routes
             michael_prompt = (
