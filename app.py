@@ -257,6 +257,17 @@ def make_agent_message(
 # LLM Agent Runner (Antigravity SDK Integration)
 # ═══════════════════════════════════════════════════════════════════════
 
+import re
+
+def _clean_response(text: str) -> str:
+    # 1. Clean markdown links targeting file:// protocol
+    text = re.sub(r"\[([^\]]+)\]\(file://[^\)]+\)", r"\1", text)
+    # 2. Clean raw file:/// paths or absolute /Users paths
+    text = re.sub(r"file:///Users/[^\s\)]+", "", text)
+    text = re.sub(r"/Users/sam/[^\s\)]+", "", text)
+    return text.strip()
+
+
 async def run_agent_llm(
     agent_id: str,
     prompt: str,
@@ -290,6 +301,7 @@ async def run_agent_llm(
         # No API key — generate a mock response using the character persona
         logger.warning(f"No GEMINI_API_KEY — using mock response for {agent_id}")
         resp = _generate_mock_response(agent_id, full_prompt)
+        resp = _clean_response(resp)
         tokens = len(full_prompt.split()) + len(resp.split())
         save_message(session_id, agent_id, AGENT_DISPLAY_NAMES.get(agent_id, agent_id), "agent_response", resp, tokens)
         return resp
@@ -298,6 +310,13 @@ async def run_agent_llm(
         from google.antigravity import Agent, LocalAgentConfig
 
         instruction = AGENT_INSTRUCTIONS.get(agent_id, "You are a helpful assistant.")
+        # Enforce universal formatting constraints to prevent filepath/summary output
+        instruction += (
+            "\n\nIMPORTANT RESPONSE RULES:\n"
+            "1. NEVER output absolute file paths, local directories, or markdown file links (e.g., no 'file:///Users/...', no '[filename.py](file://...)'). Refer to files only by their simple name (e.g., 'dwight.py') without links.\n"
+            "2. NEVER output any 'Summary of Work', 'Identified Specialist', or intent classification summaries.\n"
+            "3. Do NOT explain your chain of thought or justify why you were chosen; respond directly, concisely, and in character."
+        )
 
         config = LocalAgentConfig(
             api_key=api_key,
@@ -317,6 +336,7 @@ async def run_agent_llm(
                 response = await agent.chat(full_prompt)
                 
             resp_text = await response.text()
+            resp_text = _clean_response(resp_text)
             tokens = len(full_prompt.split()) + len(resp_text.split())
             save_message(session_id, agent_id, AGENT_DISPLAY_NAMES.get(agent_id, agent_id), "agent_response", resp_text, tokens)
             return resp_text
@@ -324,12 +344,14 @@ async def run_agent_llm(
     except ImportError:
         logger.warning("google-antigravity not installed — using mock response")
         resp = _generate_mock_response(agent_id, full_prompt)
+        resp = _clean_response(resp)
         tokens = len(full_prompt.split()) + len(resp.split())
         save_message(session_id, agent_id, AGENT_DISPLAY_NAMES.get(agent_id, agent_id), "agent_response", resp, tokens)
         return resp
     except Exception as e:
         logger.error(f"Agent {agent_id} failed: {e}")
         resp = _generate_mock_response(agent_id, full_prompt)
+        resp = _clean_response(resp)
         tokens = len(full_prompt.split()) + len(resp.split())
         save_message(session_id, agent_id, AGENT_DISPLAY_NAMES.get(agent_id, agent_id), "agent_response", resp, tokens)
         return resp
@@ -431,7 +453,7 @@ class ScrantonWorkflow:
                 f"A user has sent the following request to ScrantonOS:\n\n"
                 f'"{user_input}"\n\n'
                 f"The system has classified this as: {intent.value}\n"
-                f"Route this to the appropriate team member and introduce them."
+                f"Announce who you are calling on or routing this to in character. Keep it extremely short (a single sentence, e.g. 'Dwight, contain this threat!'). Do NOT explain your chain of thought, do NOT introduce the specialist or say why they were chosen, do NOT include file paths or links, and do NOT write a summary of work."
             )
             michael_response = await run_agent_llm("michael", michael_prompt, session_id, attachment_path=attachment_path)
             await collect_and_emit(make_agent_message("michael", michael_response, session_id=session_id))
@@ -473,7 +495,7 @@ class ScrantonWorkflow:
                         current_input = f"Follow up on the previous finding: {specialist_response}"
                         
                         # Michael announces the handoff
-                        handoff_resp = await run_agent_llm("michael", f"Announce that you are now handing this off to the team member responsible for {clean_eval}.", session_id)
+                        handoff_resp = await run_agent_llm("michael", f"Announce that you are now handing this off to the team member responsible for {clean_eval}. Keep it to a single short sentence. Do NOT explain why, do NOT include file paths or links, and do NOT write a summary.", session_id)
                         await collect_and_emit(make_agent_message("michael", handoff_resp, session_id=session_id))
                         loop_count += 1
                     else:
