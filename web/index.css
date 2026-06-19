@@ -1143,15 +1143,15 @@ body::before {
   }
 }
 
-/* ── Cooperative Mode Toggle ─────────────────────────────────── */
-.coop-toggle {
+/* ── Multi-Agent Mode Toggle ─────────────────────────────────── */
+.multi-agent-toggle {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
   margin-right: var(--space-md);
 }
 
-.coop-toggle__label {
+.multi-agent-toggle__label {
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-secondary);

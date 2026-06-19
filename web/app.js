@@ -43,7 +43,7 @@
   const statusText = document.getElementById('status-text');
   const typingIndicator = document.getElementById('typing-indicator');
   const typingName = document.getElementById('typing-name');
-  const coopToggleBtn = document.getElementById('coop-toggle-btn');
+  const multiAgentToggleBtn = document.getElementById('multi-agent-toggle-btn');
 
   function classifyIntent(text) {
     const inputLower = text.toLowerCase();
@@ -619,13 +619,13 @@
     const text = chatInput.value.trim();
     if ((!text && !currentAttachmentBase64) || !ws || ws.readyState !== WebSocket.OPEN) return;
 
-    const cooperative = coopToggleBtn ? coopToggleBtn.checked : false;
+    const multiAgent = multiAgentToggleBtn ? multiAgentToggleBtn.checked : false;
 
     ws.send(JSON.stringify({
       type: 'chat',
       message: text,
       attachment_base64: currentAttachmentBase64 || "",
-      cooperative: cooperative,
+      multi_agent: multiAgent,
     }));
 
     // Clear input
@@ -640,7 +640,7 @@
     imagePreviewImg.src = '';
 
     // Show typing indicator
-    if (cooperative) {
+    if (multiAgent) {
       showTyping('michael');
     } else {
       showTyping(classifyIntent(text));

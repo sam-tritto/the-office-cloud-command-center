@@ -4,7 +4,9 @@ ScrantonOS is a persistent, multi-agent orchestration engine and web interface b
 
 ## Features
 
-- **Multi-Agent Orchestration Loops**: Requests are received by the orchestrator (Michael) and routed to subject matter experts (Dwight for SRE, Oscar for FinOps, Stanley for IAM, etc.). Michael evaluates their responses and can chain tasks to other agents (e.g., Dwight finds an error -> Pam generates a report).
+- **Multi-Agent Orchestration (Toggleable)**: Features a **Multi-Agent Mode** toggle switch in the UI:
+  - **Off (Direct Mode / Default)**: Bypasses Michael's orchestration and evaluation loops. The system classifies user intent deterministically and routes it directly to the target specialist (e.g., SRE -> Dwight, FinOps -> Oscar) to show their typing indicator instantly and return their response.
+  - **On (Multi-Agent Mode)**: Michael Scott orchestrates the entire query, greeting the user, introducing the specialist, evaluating the output for potential multi-step chaining (e.g. Dwight finds a crash -> Pam compiles a report), and triggering office banter.
 - **Interactive Data Dashboard 📊**: A slide-out visualization drawer built with `Chart.js` to view system telemetry and analytics. It displays beautiful, dynamic charts generated from metadata returned by:
   - **Oscar (FinOps)**: A structured bar chart detailing billing breakdowns and anomalies.
   - **Dwight (SRE)**: A pie chart mapping system log error distribution and resource bottlenecks.

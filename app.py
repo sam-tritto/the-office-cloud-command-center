@@ -394,7 +394,7 @@ class ScrantonWorkflow:
         user_input: str,
         session_id: str = "default",
         attachment_path: Optional[str] = None,
-        cooperative: bool = False,
+        multi_agent: bool = False,
     ) -> list[AgentMessage]:
         """
         Main entry point. Process a user's natural language input
@@ -419,9 +419,9 @@ class ScrantonWorkflow:
             
             # Step 1: Classify intent (deterministic — cannot be prompt-injected)
             intent = classify_intent(user_input)
-            logger.info(f"Classified intent: {intent.value} (cooperative={cooperative})")
+            logger.info(f"Classified intent: {intent.value} (multi_agent={multi_agent})")
 
-            if not cooperative:
+            if not multi_agent:
                 target_agent = INTENT_AGENT_MAP.get(intent, "michael")
                 await self._run_specialist(target_agent, intent, user_input, collect_and_emit, session_id, attachment_path)
                 return messages

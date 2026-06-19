@@ -180,7 +180,7 @@ async def websocket_endpoint(ws: WebSocket):
                     except Exception as e:
                         logger.error(f"Failed to decode attachment: {e}")
 
-                cooperative = msg.get("cooperative", False)
+                multi_agent = msg.get("multi_agent", False)
 
                 # Echo user message back to the session
                 user_msg = AgentMessage(
@@ -198,7 +198,7 @@ async def websocket_endpoint(ws: WebSocket):
                         content,
                         session_id=session_id,
                         attachment_path=attachment_path,
-                        cooperative=cooperative,
+                        multi_agent=multi_agent,
                     )
                 except Exception as e:
                     logger.error(f"Workflow error: {e}", exc_info=True)
